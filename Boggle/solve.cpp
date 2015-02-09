@@ -2,99 +2,78 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include "solve.h"
 
-#define MAX_SIZE 5
+
 
 using namespace std;
-
-typedef struct {
-
-  int cy;
-  int cx;
-} coord;
-
 
 coord foundResult[10][10];
 int solutionIndex = 0;
 int orderIndex = 0;
-char *targetWord = "YES";
+char *targetWord = (char *)"YES";
+
 
 const int dy[8] = { -1, 0, 1, -1, 0, 1,  -1, 1};
 const int dx[8] = { -1, -1, -1, 1, 1, 1, 0, 0 };
-char board[MAX_SIZE][MAX_SIZE] = { 'N', 'N', 'N', 'N', 'S',
-                                   'N', 'E', 'E', 'E', 'S',
-                                   'N', 'E', 'Y', 'E', 'N',
-                                   'N', 'E', 'E', 'E', 'N',
-                                   'S', 'N', 'N', 'N', 'N'};
-
-bool hasWord(int, int, int, int, const string&);
-bool inRange(int, int);
-void printBoard();
 
 
-void init()
+int main(int argc, char **argv)
 {
 
-  memset(foundResult, 0, sizeof(foundResult));
+  coord footprint[MAX_SIZE];
 
-  solutionIndex = 0;
-  orderIndex = 0;
-}
+  init();
 
-void printBoard()
-{
+
+  memset (footprint, 0, sizeof (footprint));
+
   for (int y = 0; y < MAX_SIZE; y++)
   {
-    for ( int x = 0; x < MAX_SIZE; x++)
-      cout << board[y][x] << " ";
-
-    cout << endl;
-
+    for (int x = 0; x < MAX_SIZE; x++)
+    {
+        printf("Searching the work from (%d, %d) \n", y, x); 
+        hasWord(y, x, targetWord, footprint, 0);
+    }
   }
+
+  printSolution();
 }
 
 
-void printSolution()
-{
 
-  for (int i = 0; i <= solutionIndex - 1; i++)
-  {
-    for (int j = 0 ; j < strlen(targetWord); j++ )
-      printf("[%d:%d] ", foundResult[i][j].cy, foundResult[i][j].cx);
+RESULT hasWord(int y, int x, char  *word, coord *footprint, int depth) {
 
-    printf("\n");
-  }
+  //printf("%s : [%d, %d] %s \n", __FUNCTION__, y, x, word);
 
-}
+  RESULT res;
+  coord current;
 
-
-bool hasWord(int prev_y, int prev_x, int y, int x, char  *word) {
-
-  printf("%s : [%d, %d] %s \n", __FUNCTION__, y, x, word);
 
   if (!inRange(y, x))
   {
     //printf("Out of Range \n");
-    return false;
+    return R_FAIL;
   }
 
   if (board[y][x] != word[0])
   {
-      printf("Does not match \n");
-      return false;
+      //printf("Does not match \n");
+      return R_FAIL;
   }
 
-  //foundResult[solutionIndex][orderIndex].cy = y;
-  //foundResult[solutionIndex][orderIndex].cx = x;
-  //orderIndex++;
+  /* Keep the footprint */
+  footprint[depth].cy = y;
+  footprint[depth].cx = x;
+  ++depth;
 
-
+  /* Completely found the word */
   if (strlen(word) == 1)
   {
-
-    return true;
+      return R_FOUND;
   }
 
+  /* move to next substring */
   ++word;
 
   for (int direction = 0; direction < 8; ++direction) {
@@ -102,17 +81,51 @@ bool hasWord(int prev_y, int prev_x, int y, int x, char  *word) {
      int nextX = x + dx[direction];
 
 
+     res = hasWord(nextY, nextX, word, footprint, depth);
 
-     if (hasWord(y, x, nextY, nextX, word))
-     {
-        foundResult[solutionIndex][orderIndex].cy = nextY;
-        foundResult[solutionIndex][orderIndex].cx = nextX;
-        orderIndex++;
-        return true;
-      }
+     switch (res)
+    {
+      case R_FAIL :
+
+        break;
+
+      case R_PROGRESS :
+
+        break;
+
+      case R_FOUND :
+        /* save the footprint */
+        current.cy = nextY;
+        current.cx = nextX;
+        saveFootPrint(footprint, depth, current);
+
+        solutionIndex++;
+
+        break;
+
+    }
+
   }
 
-  return false;
+  return R_FAIL;
+}
+
+
+void saveFootPrint(coord *past, int depth, coord current)
+{
+  int k;
+
+  printf("%s \n", __FUNCTION__);
+
+  for (k = 0; k < depth; k++)
+  {
+    foundResult[solutionIndex][k].cy = past[k].cy;
+    foundResult[solutionIndex][k].cx = past[k].cx;
+  }
+  foundResult[solutionIndex][k].cy = current.cy;
+  foundResult[solutionIndex][k].cx = current.cx;
+
+
 }
 
 
@@ -134,28 +147,38 @@ bool inRange(int y, int x)
 }
 
 
-int main(int argc, char **argv)
+
+void printBoard()
 {
-
-//  printBoard();
-//  char *word = "YES";
-
-  init();
-
   for (int y = 0; y < MAX_SIZE; y++)
   {
-    for (int x = 0; x < MAX_SIZE; x++)
-    {
-        if (hasWord(y, x, y, x, targetWord))
-        {
-            foundResult[solutionIndex][orderIndex].cy = y;
-            foundResult[solutionIndex][orderIndex].cx = x;
-            solutionIndex++;
-            cout<<"Found !!" << endl;
+    for ( int x = 0; x < MAX_SIZE; x++)
+      cout << board[y][x] << " ";
 
-        }
-    }
+    cout << endl;
+
+  }
+}
+
+void init()
+{
+
+  memset(foundResult, 0, sizeof(foundResult));
+
+  solutionIndex = 0;
+  orderIndex = 0;
+}
+
+
+void printSolution()
+{
+
+  for (int i = 0; i <= solutionIndex - 1; i++)
+  {
+    for (int j = 0 ; j < strlen(targetWord); j++ )
+      printf("[%d:%d] ", foundResult[i][j].cy, foundResult[i][j].cx);
+
+    printf("\n");
   }
 
-  printSolution();
 }
